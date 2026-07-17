@@ -85,10 +85,6 @@ class PromptSanitiser {
             Regex("""translate\s+the\s+(above|following)\s+to\b""", RegexOption.IGNORE_CASE),
             Regex("""repeat\s+(after\s+me|the\s+following)\b""", RegexOption.IGNORE_CASE),
 
-            // Output manipulation
-            Regex("""translate\s+the\s+(above|following)\s+to\b""", RegexOption.IGNORE_CASE),
-            Regex("""repeat\s+(after\s+me|the\s+following)\b""", RegexOption.IGNORE_CASE),
-
             // Consequence phrases — trail after an instruction override command and
             // carry the attacker's desired output. Strip the entire clause that
             // follows connective words when paired with output verbs.

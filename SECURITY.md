@@ -181,10 +181,19 @@ reach the sanitisation or AI layer:
 |---|---|
 | `name` | `@NotBlank`, `@Size(max=100)` |
 | `jobTitle` | `@NotBlank`, `@Size(max=100)` |
-| `hobbies` | `@Size(min=1, max=10)`, each element `@Size(max=100)` |
+| `hobbies` | `@Size(min=1, max=10)` on the list, plus an `@AssertTrue` method (`isEachHobbyValid`) checking each entry is non-blank and ≤100 chars* |
 | `latitude` | `@DecimalMin("-90.0")`, `@DecimalMax("90.0")` |
 | `longitude` | `@DecimalMin("-180.0")`, `@DecimalMax("180.0")` |
 | `radiusKm` | `@DecimalMin("0.0", inclusive=false)`, `@DecimalMax("500.0")` |
 
 Validation failures return HTTP 400 with field-level error details.
 Stack traces are never exposed to callers.
+
+\* Per-element constraints on generic list contents (e.g.
+`List<@Size(max=100) String>`) are how Bean Validation "should" express this,
+but Kotlin compiles that as a type-use annotation on the generic argument,
+and Hibernate Validator does not reliably traverse those on Kotlin data
+classes — the constraint can silently never fire. This was caught by a
+failing test during development (a too-long/blank hobby was accepted). The
+`@AssertTrue` method is evaluated unconditionally regardless of that
+Kotlin/Java-interop gap, so it was used instead.

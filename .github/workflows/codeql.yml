@@ -1,0 +1,52 @@
+name: CodeQL Code Scanning
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  analyze:
+    name: Analyze (Java/Kotlin)
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'java-kotlin' ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # CodeQL's autobuild struggles with some Gradle/Kotlin setups, so build
+      # explicitly (tests skipped here — CI already covers correctness).
+      - name: Build
+        run: ./gradlew clean compileKotlin compileTestKotlin --no-daemon
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"

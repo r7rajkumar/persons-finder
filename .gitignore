@@ -30,6 +30,9 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+# Kotlin (incremental compilation cache — not created until you run the build locally)
+.kotlin/
+
 # IntelliJ IDEA
 .idea/
 *.iws
@@ -39,6 +42,19 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
+# Eclipse / Spring Tool Suite / NetBeans
+.classpath
+.project
+.settings/
+.apt_generated
+.factorypath
+.springBeans
+.sts4-cache
+/nbproject/private/
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+
 # VS Code / Kiro
 .vscode/
 .kiro/
@@ -47,6 +63,22 @@ out/
 .DS_Store
 .AppleDouble
 .LSOverride
+
+# Environment / secrets — none committed today (mock AI service), but keeps any
+# future real-LLM API key out of source control by default.
+.env
+.env.local
+*.env.local
+
+# H2 file-mode database artifacts — the app uses in-memory H2 by default
+# (jdbc:h2:mem:testdb), so these won't normally appear, but this guards
+# against accidentally committing a local file-mode DB.
+*.mv.db
+*.trace.db
+
+# Docker — local override files reviewers may add without touching the
+# tracked docker-compose.yml
+docker-compose.override.yml
 
 # Spring Boot
 HELP.md

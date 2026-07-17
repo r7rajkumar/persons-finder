@@ -1,0 +1,12 @@
+.git
+.gradle
+.idea
+.kiro
+.vscode
+build/
+out/
+*.iml
+.DS_Store
+HELP.md
+*.md
+!README.md

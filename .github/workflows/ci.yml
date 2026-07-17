@@ -1,0 +1,78 @@
+name: CI
+
+# Runs on GitHub's hosted Ubuntu runners, so the build/test result here is
+# independent of whatever OS a contributor developed on (macOS, Windows, Linux).
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build and run tests
+        run: ./gradlew clean build --no-daemon
+
+      - name: Publish test report summary
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: JUnit Test Report
+          path: build/test-results/test/*.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: build/reports/tests/test
+          retention-days: 14
+
+      - name: Upload build jar
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: build/libs/*.jar
+          retention-days: 7
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t persons-finder:ci .
