@@ -425,6 +425,12 @@ analysis (`security-extended` query pack) on push and pull requests to
 `main`, with results published to the repository's
 **Security → Code scanning** tab.
 
+<img width="3394" height="1566" alt="image" src="https://github.com/user-attachments/assets/3fb55a16-e98f-4837-b7f2-758d3f85e777" />
+
+<img width="3386" height="1756" alt="image" src="https://github.com/user-attachments/assets/dc543172-1373-4e3e-87b4-0953d6109aa7" />
+
+
+
 ---
 
 ## Project Structure
