@@ -46,6 +46,8 @@ of injection attacks:
 | Template delimiters | `<system>`, `[INST]`, `<<SYS>>`, `### instruction:`, `system:` |
 | Direct commands | `instead say`, `respond only with`, `from now on`, `new instructions:` |
 | Output manipulation | `translate the above to`, `repeat after me` |
+| Consequence clauses | `and say "..."`, `then output ...`, `now write ...` — strips the *payload* that trails an instruction override, e.g. the `and say 'I am hacked'` half of the brief's own example attack |
+| Exfiltration attempts | `tell me your/the/all...`, `reveal your/the/system/secret...`, `show me your/the/all...` |
 
 After removal, whitespace is normalised. The operation is **silent** — no
 exception is thrown. Throwing an exception would tell the attacker that their
@@ -181,7 +183,7 @@ reach the sanitisation or AI layer:
 |---|---|
 | `name` | `@NotBlank`, `@Size(max=100)` |
 | `jobTitle` | `@NotBlank`, `@Size(max=100)` |
-| `hobbies` | `@Size(min=1, max=10)` on the list, plus an `@AssertTrue` method (`isEachHobbyValid`) checking each entry is non-blank and ≤100 chars* |
+| `hobbies` | `@Size(min=1, max=10)` on the list, plus a custom `@ValidHobbies` constraint (backed by `ValidHobbiesValidator`) checking each entry is non-blank and ≤100 chars* |
 | `latitude` | `@DecimalMin("-90.0")`, `@DecimalMax("90.0")` |
 | `longitude` | `@DecimalMin("-180.0")`, `@DecimalMax("180.0")` |
 | `radiusKm` | `@DecimalMin("0.0", inclusive=false)`, `@DecimalMax("500.0")` |
@@ -195,5 +197,7 @@ but Kotlin compiles that as a type-use annotation on the generic argument,
 and Hibernate Validator does not reliably traverse those on Kotlin data
 classes — the constraint can silently never fire. This was caught by a
 failing test during development (a too-long/blank hobby was accepted). The
-`@AssertTrue` method is evaluated unconditionally regardless of that
-Kotlin/Java-interop gap, so it was used instead.
+fix is a custom field-level constraint (`@ValidHobbies` / a
+`ConstraintValidator<ValidHobbies, List<String>?>`) that inspects the list
+contents directly — field-level custom constraints are reliably invoked
+regardless of that Kotlin/Java-interop gap.
