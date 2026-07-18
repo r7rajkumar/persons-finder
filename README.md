@@ -97,7 +97,7 @@ Clone the repository and make the helper script executable — do this once
 before using any of the run methods below.
 
 ```bash
-git clone https://github.com/REPLACE_ME/persons-finder.git
+git clone https://github.com/r7rajkumar/persons-finder.git
 cd persons-finder
 ```
 
@@ -233,7 +233,12 @@ curl -s "http://localhost:8080/api/v1/persons/nearby?lat=0&lon=0&radiusKm=10" | 
 
 Expected: `[]`
 
-### Step 2 — Create Alice
+### Step 2 — Create users
+
+Location is set directly in the creation payload — there's no need for a
+separate `PUT .../location` call just to place a newly created person.
+
+**Alice:**
 
 ```bash
 curl -s -X POST "http://localhost:8080/api/v1/persons" \
@@ -249,7 +254,7 @@ curl -s -X POST "http://localhost:8080/api/v1/persons" \
 
 Expected: `201 Created` with `id`, `name`, `jobTitle`, `hobbies`, and an AI-generated `bio`.
 
-### Step 3 — Create Bob
+**Bob** (~0.87km from Alice — used in Step 3 to prove distance sorting):
 
 ```bash
 curl -s -X POST "http://localhost:8080/api/v1/persons" \
@@ -265,37 +270,11 @@ curl -s -X POST "http://localhost:8080/api/v1/persons" \
 
 Expected: `201 Created` with a different `id` and its own AI-generated `bio`.
 
-### Step 4 — Update Alice's location
+Note the `id` returned for each — you'll need Alice's `id` for the `PUT
+.../location` example in the [Person not found](#person-not-found--404)
+check below (any existing id works there too).
 
-Replace `1` with Alice's actual `id` from Step 2 if it differs.
-
-```bash
-curl -s -X PUT "http://localhost:8080/api/v1/persons/1/location" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "latitude": 51.5074,
-    "longitude": -0.1278
-  }' | jq .
-```
-
-Expected: `200 OK` with Alice's full person object.
-
-### Step 5 — Update Bob's location
-
-Replace `2` with Bob's actual `id` from Step 3 if it differs.
-
-```bash
-curl -s -X PUT "http://localhost:8080/api/v1/persons/2/location" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "latitude": 51.5150,
-    "longitude": -0.1250
-  }' | jq .
-```
-
-Expected: `200 OK` with Bob's full person object.
-
-### Step 6 — Find nearby people within 10km of Alice
+### Step 3 — Find nearby people within 10km of Alice
 
 ```bash
 curl -s "http://localhost:8080/api/v1/persons/nearby?lat=51.5074&lon=-0.1278&radiusKm=10" | jq .
@@ -303,7 +282,15 @@ curl -s "http://localhost:8080/api/v1/persons/nearby?lat=51.5074&lon=-0.1278&rad
 
 Expected: both Alice and Bob, sorted by ascending distance — Alice at `0.0` km, Bob at `~0.87` km.
 
-### Step 7 — Validation: blank name → 400
+---
+
+## Validation & Negative Testing
+
+The checks below all use the same running instance from Steps 1–3 above.
+Each targets a different failure mode: request validation, prompt-injection
+handling, missing resources, malformed requests, and geographic filtering.
+
+### Blank name → 400
 
 ```bash
 curl -s -X POST "http://localhost:8080/api/v1/persons" \
@@ -320,7 +307,7 @@ curl -s -X POST "http://localhost:8080/api/v1/persons" \
 Expected: `400 Bad Request`, top-level `"error": "Validation failed"`, with
 `"name: Name must not be blank"` inside the `details` array.
 
-### Step 8 — Prompt injection: bio must not contain the injected text
+### Prompt injection: bio must not contain the injected text
 
 ```bash
 curl -s -X POST "http://localhost:8080/api/v1/persons" \
@@ -338,7 +325,7 @@ Expected: `201 Created` — the request still succeeds (sanitisation is
 silent, not a rejection — see [Security](#security)), and the word
 `HACKED` does not appear anywhere in the returned `bio`.
 
-### Step 9 — Person not found → 404
+### Person not found → 404
 
 ```bash
 curl -s -X PUT "http://localhost:8080/api/v1/persons/99999/location" \
@@ -351,7 +338,7 @@ curl -s -X PUT "http://localhost:8080/api/v1/persons/99999/location" \
 
 Expected: `404 Not Found` with `"error": "Person not found with id: 99999"`.
 
-### Step 10 — Missing request body → 400
+### Missing request body → 400
 
 ```bash
 curl -s -X PUT "http://localhost:8080/api/v1/persons/1/location" \
@@ -360,7 +347,40 @@ curl -s -X PUT "http://localhost:8080/api/v1/persons/1/location" \
 
 Expected: `400 Bad Request` with `"error": "Request body is missing or not valid JSON"`.
 
+### Person outside the search radius is excluded from nearby results
+
+Create a third person ("Charlie") deliberately placed **~16.7km** from
+Alice (0.15° of latitude ≈ 16.7km — comfortably outside a 10km radius,
+so this isn't a borderline/flaky distance):
+
+```bash
+curl -s -X POST "http://localhost:8080/api/v1/persons" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Charlie",
+    "jobTitle": "Analyst",
+    "hobbies": ["Reading"],
+    "latitude": 51.6574,
+    "longitude": -0.1278
+  }' | jq .
+```
+
+Note Charlie's `id`, then re-run the same 10km search centered on Alice:
+
+```bash
+curl -s "http://localhost:8080/api/v1/persons/nearby?lat=51.5074&lon=-0.1278&radiusKm=10" | jq .
+```
+
+Expected: the response still contains only Alice and Bob — Charlie's `id`
+does **not** appear, confirming the `radiusKm` filter actually excludes
+people beyond it rather than just sorting/truncating the full list.
+
 ---
+
+## Demo Recording
+
+https://www.loom.com/share/1c654d363e52414aa1c83add06d88356
+
 
 ## Running Tests
 
