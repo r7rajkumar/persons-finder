@@ -101,8 +101,6 @@ git clone https://github.com/r7rajkumar/persons-finder.git
 cd persons-finder
 ```
 
-> **Note:** the URL above is a placeholder — replace it with the actual
-> repository URL.
 
 **macOS / Linux only** — grant execute permission to the shell scripts
 (cloning does not always preserve this):
